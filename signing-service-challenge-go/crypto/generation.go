@@ -40,3 +40,26 @@ func (g *ECCGenerator) Generate() (*ECCKeyPair, error) {
 		Private: key,
 	}, nil
 }
+
+func NewKeyPair(algorithm string) ([]byte, []byte, error) {
+	switch algorithm {
+	case "ECC":
+		generator := ECCGenerator{}
+		keyPair, err := generator.Generate()
+		if err != nil {
+			return []byte{}, []byte{}, err
+		}
+		marshaller := NewECCMarshaler()
+		return marshaller.Encode(*keyPair)
+	case "RSA":
+		generator := RSAGenerator{}
+		keyPair, err := generator.Generate()
+		if err != nil {
+			return []byte{}, []byte{}, err
+		}
+		marshaller := NewRSAMarshaler()
+		return marshaller.Marshal(*keyPair)
+	default:
+		return []byte{}, []byte{}, ErrInvalidAlgorithm
+	}
+}

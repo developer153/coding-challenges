@@ -3,6 +3,9 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/fiskaly/coding-challenges/signing-service-challenge/domain"
+	"github.com/gorilla/mux"
 )
 
 // Response is the generic API response container.
@@ -18,25 +21,28 @@ type ErrorResponse struct {
 // Server manages HTTP requests and dispatches them to the appropriate services.
 type Server struct {
 	listenAddress string
+	domain        domain.ISignatureDeviceDomain
 }
 
 // NewServer is a factory to instantiate a new Server.
-func NewServer(listenAddress string) *Server {
+func NewServer(listenAddress string, domain domain.ISignatureDeviceDomain) *Server {
 	return &Server{
 		listenAddress: listenAddress,
-		// TODO: add services / further dependencies here ...
+		domain:        domain,
 	}
 }
 
 // Run registers all HandlerFuncs for the existing HTTP routes and starts the Server.
 func (s *Server) Run() error {
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
-	mux.Handle("/api/v0/health", http.HandlerFunc(s.Health))
+	r.Handle("/api/v0/health", http.HandlerFunc(s.Health))
+	r.Handle("/api/v0/devices", http.HandlerFunc(s.ReadSignatureDevices)).Methods("GET")
+	r.Handle("/api/v0/devices", http.HandlerFunc(s.CreateSignatureDevice)).Methods("POST")
+	r.Handle("/api/v0/devices/{id}", http.HandlerFunc(s.ReadSignatureDevice)).Methods("GET")
+	r.Handle("/api/v0/devices/{id}:sign", http.HandlerFunc(s.SignTransaction)).Methods("POST")
 
-	// TODO: register further HandlerFuncs here ...
-
-	return http.ListenAndServe(s.listenAddress, mux)
+	return http.ListenAndServe(s.listenAddress, r)
 }
 
 // WriteInternalError writes a default internal error message as an HTTP response.
